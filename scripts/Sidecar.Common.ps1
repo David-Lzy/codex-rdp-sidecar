@@ -84,7 +84,8 @@ function Resolve-SidecarTemplatePath {
 }
 
 function ConvertTo-SidecarJson {
-    param([Parameter(Mandatory)]$InputObject)
-    $InputObject | ConvertTo-Json -Depth 8
+    param([Parameter(Mandatory, ValueFromPipeline)]$InputObject)
+    process {
+        $InputObject | ConvertTo-Json -Depth 8
+    }
 }
-

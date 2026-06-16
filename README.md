@@ -33,6 +33,7 @@ The June 2026 RDP Wrapper breakage discussed here is tracked upstream at:
 - Initializes the sidecar user profile.
 - Copies selected Codex session/config files into the sidecar profile.
 - Optionally copies Codex auth/state files when explicitly requested.
+- Optionally copies local Codex pet assets.
 - Copies game profile folders and `HKCU` registry keys through a reviewed manifest.
 - Installs/configures RDP Wrapper through an external `rdpWrapper.exe`.
 - Configures `TermService` policy for parallel sessions.
@@ -67,6 +68,7 @@ Set-Location H:\Codex\codex-rdp-sidecar
 .\scripts\20-copy-codex-session.ps1 `
   -TargetUser codex `
   -SessionId "<codex-session-id>" `
+  -IncludePets `
   -IncludeAuth `
   -IncludeState
 
@@ -82,6 +84,9 @@ Set-Location H:\Codex\codex-rdp-sidecar
   -FullAddress 127.0.0.20 `
   -UserName "$env:COMPUTERNAME\codex" `
   -Password "change-this-password" `
+  -DesktopWidth 3840 `
+  -DesktopHeight 2060 `
+  -DesktopScaleFactor 150 `
   -SaveCredential `
   -Sign
 
@@ -114,15 +119,57 @@ Editing an `.rdp` file invalidates its signature. Re-run:
   -Sign
 ```
 
+## RDP Resolution And Scaling
+
+`50-create-rdp-launcher.ps1` defaults to the practical sidecar setup tested on a 4K-class local display:
+
+- `desktopwidth:i:3840`
+- `desktopheight:i:2060`
+- `smart sizing:i:1`
+- `dynamic resolution:i:0`
+- `desktopscalefactor:i:150`
+- `devicescalefactor:i:100`
+
+This favors a maximized window with no scroll bars. `smart sizing` scales the remote frame when the local RDP client area does not exactly match the remote desktop size, so it is not guaranteed to be pixel-perfect. Pixel-perfect output requires the remote desktop size to exactly equal the RDP client area.
+
+`dynamic resolution:i:1` is theoretically better because the remote desktop follows the client window size, but it may not work reliably through RDP Wrapper or modified `TermService` chains. Use `-EnableDynamicResolution` only if you have verified it works on your host.
+
 ## Codex Session Copying
 
 `20-copy-codex-session.ps1` copies only basic config by default. You must explicitly opt in to sensitive files:
 
 - `-IncludeAuth` copies `auth.json` and browser/native-host related files.
 - `-IncludeState` copies local Codex state SQLite files.
+- `-IncludePets` copies `.codex\pets` custom pet assets.
 - `-MoveSession` removes the source session file after copying and uses PowerShell confirmation semantics.
 
 Do not commit copied `.codex` data.
+
+## Troubleshooting Codex Agent Sandbox Updates
+
+If the sidecar account shows `Unable to update Agent sandbox`, check whether the Codex MSIX/AppX package is open in another Windows session.
+
+On a machine where both the main console account and the RDP sidecar account are running Codex, Windows may log:
+
+- `StoreAgentInstallFailure1`
+- `Update;Codex-SearchForUpdatesWithPausedAddAsync`
+- error code `80073d02`
+
+That code usually means the package is in use and cannot be updated. Close Codex in every local and RDP session, wait for all `Codex.exe` and `codex.exe` processes to exit, then reopen one Codex instance and retry the update.
+
+Useful checks:
+
+```powershell
+tasklist /v /fi "imagename eq Codex.exe"
+tasklist /v /fi "imagename eq codex.exe"
+
+Get-WinEvent -FilterHashtable @{
+  LogName = "Application"
+  StartTime = (Get-Date).AddHours(-2)
+} | Where-Object {
+  $_.Message -match "Codex-SearchForUpdatesWithPausedAddAsync|80073d02"
+}
+```
 
 ## Game Profile Copying
 

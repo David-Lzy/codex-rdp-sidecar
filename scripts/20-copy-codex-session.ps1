@@ -5,6 +5,7 @@ param(
     [string]$SessionId = "",
     [switch]$IncludeAuth,
     [switch]$IncludeState,
+    [switch]$IncludePets,
     [switch]$MoveSession
 )
 
@@ -35,6 +36,14 @@ foreach ($name in $baseFiles) {
     }
 }
 
+if ($IncludePets) {
+    $sourcePets = Join-Path $sourceCodex "pets"
+    $targetPets = Join-Path $targetCodex "pets"
+    if (Invoke-SidecarRobocopy -Source $sourcePets -Destination $targetPets) {
+        $copied.Add(".codex\pets")
+    }
+}
+
 if ($SessionId) {
     $sessionFiles = Get-ChildItem -LiteralPath (Join-Path $sourceCodex "sessions") -Recurse -Filter "*.jsonl" -ErrorAction Stop |
         Where-Object { $_.Name -like "*$SessionId*" }
@@ -61,7 +70,7 @@ if ($SessionId) {
     sessionId = $SessionId
     includeAuth = [bool]$IncludeAuth
     includeState = [bool]$IncludeState
+    includePets = [bool]$IncludePets
     moveSession = [bool]$MoveSession
     copied = $copied
 } | ConvertTo-SidecarJson
-

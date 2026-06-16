@@ -32,7 +32,12 @@ $rdpText = if (Test-Path -LiteralPath $RdpPath) { Get-Content -LiteralPath $RdpP
     rdpFileExists = (Test-Path -LiteralPath $RdpPath)
     rdpFullAddress = ([regex]::Match($rdpText, "(?m)^full address:s:(.*)$")).Groups[1].Value.Trim()
     rdpUserName = ([regex]::Match($rdpText, "(?m)^username:s:(.*)$")).Groups[1].Value.Trim()
+    rdpDesktopWidth = ([regex]::Match($rdpText, "(?m)^desktopwidth:i:(.*)$")).Groups[1].Value.Trim()
+    rdpDesktopHeight = ([regex]::Match($rdpText, "(?m)^desktopheight:i:(.*)$")).Groups[1].Value.Trim()
+    rdpSmartSizing = ([regex]::Match($rdpText, "(?m)^smart sizing:i:(.*)$")).Groups[1].Value.Trim()
+    rdpDynamicResolution = ([regex]::Match($rdpText, "(?m)^dynamic resolution:i:(.*)$")).Groups[1].Value.Trim()
+    rdpDesktopScaleFactor = ([regex]::Match($rdpText, "(?m)^desktopscalefactor:i:(.*)$")).Groups[1].Value.Trim()
+    rdpDeviceScaleFactor = ([regex]::Match($rdpText, "(?m)^devicescalefactor:i:(.*)$")).Groups[1].Value.Trim()
     rdpSigned = $rdpText -match "(?m)^signature:s:"
     sessions = ((& query.exe session) 2>$null)
 } | ConvertTo-SidecarJson
-

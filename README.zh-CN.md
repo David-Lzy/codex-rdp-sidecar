@@ -27,6 +27,7 @@
 - 初始化目标用户 profile。
 - 复制指定 Codex session/config。
 - 可选复制 Codex auth/state 文件。
+- 可选复制本地 Codex 宠物资源。
 - 通过 manifest 复制游戏配置目录和 `HKCU` 注册表键。
 - 使用外部 `rdpWrapper.exe` 安装/配置 RDP Wrapper。
 - 配置 `TermService` 多会话策略。
@@ -61,6 +62,7 @@ Set-Location H:\Codex\codex-rdp-sidecar
 .\scripts\20-copy-codex-session.ps1 `
   -TargetUser codex `
   -SessionId "<codex-session-id>" `
+  -IncludePets `
   -IncludeAuth `
   -IncludeState
 
@@ -76,6 +78,9 @@ Set-Location H:\Codex\codex-rdp-sidecar
   -FullAddress 127.0.0.20 `
   -UserName "$env:COMPUTERNAME\codex" `
   -Password "change-this-password" `
+  -DesktopWidth 3840 `
+  -DesktopHeight 2060 `
+  -DesktopScaleFactor 150 `
   -SaveCredential `
   -Sign
 
@@ -108,15 +113,57 @@ Set-Location H:\Codex\codex-rdp-sidecar
   -Sign
 ```
 
+## RDP 分辨率和缩放
+
+`50-create-rdp-launcher.ps1` 默认使用一套在 4K 级本地显示器上更实用的 sidecar 配置：
+
+- `desktopwidth:i:3840`
+- `desktopheight:i:2060`
+- `smart sizing:i:1`
+- `dynamic resolution:i:0`
+- `desktopscalefactor:i:150`
+- `devicescalefactor:i:100`
+
+这套配置优先保证 RDP 窗口最大化时没有横向/纵向滚动条。`smart sizing` 的本质是缩放远端画布；如果本地 RDP 客户区和远端桌面尺寸没有完全一致，就不能保证点对点清晰。真正点对点要求远端分辨率刚好等于本地 RDP 客户区大小。
+
+理论上 `dynamic resolution:i:1` 更理想，因为远端桌面会跟随客户端窗口大小变化；但在 RDP Wrapper 或改造后的 `TermService` 链路上可能不生效。只有在你确认本机支持时才使用 `-EnableDynamicResolution`。
+
 ## 关于 Codex session
 
 默认只复制基础配置。敏感文件必须显式打开：
 
 - `-IncludeAuth`：复制 `auth.json` 等认证相关文件。
 - `-IncludeState`：复制本地 Codex SQLite 状态。
+- `-IncludePets`：复制 `.codex\pets` 本地宠物资源。
 - `-MoveSession`：复制后删除源 session 文件，会触发 PowerShell 确认语义。
 
 不要把复制出来的 `.codex` 数据提交到 git。
+
+## Codex Agent 沙盒更新失败
+
+如果 sidecar 账户里出现“无法更新 Agent 沙盒”，先检查是不是同一个 Codex MSIX/AppX 包同时被主账户和 RDP 账户占用。
+
+当主账户和 RDP sidecar 账户同时运行 Codex 时，Windows 事件日志里可能出现：
+
+- `StoreAgentInstallFailure1`
+- `Update;Codex-SearchForUpdatesWithPausedAddAsync`
+- 错误码 `80073d02`
+
+这个错误通常表示包正在使用中，Windows 不能替换更新文件。处理方式是关闭所有本地和 RDP 会话里的 Codex，等待 `Codex.exe` 和 `codex.exe` 全部退出，然后只打开一个 Codex 实例并重试更新。
+
+排查命令：
+
+```powershell
+tasklist /v /fi "imagename eq Codex.exe"
+tasklist /v /fi "imagename eq codex.exe"
+
+Get-WinEvent -FilterHashtable @{
+  LogName = "Application"
+  StartTime = (Get-Date).AddHours(-2)
+} | Where-Object {
+  $_.Message -match "Codex-SearchForUpdatesWithPausedAddAsync|80073d02"
+}
+```
 
 ## 关于游戏配置
 

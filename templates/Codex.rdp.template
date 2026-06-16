@@ -3,7 +3,12 @@ use multimon:i:0
 desktopwidth:i:{{DESKTOP_WIDTH}}
 desktopheight:i:{{DESKTOP_HEIGHT}}
 session bpp:i:24
-winposstr:s:0,1,0,0,800,600
+winposstr:s:{{WIN_POS_STR}}
+desktop size id:i:0
+dynamic resolution:i:{{DYNAMIC_RESOLUTION}}
+smart sizing:i:{{SMART_SIZING}}
+desktopscalefactor:i:{{DESKTOP_SCALE_FACTOR}}
+devicescalefactor:i:{{DEVICE_SCALE_FACTOR}}
 compression:i:1
 keyboardhook:i:2
 audiocapturemode:i:0
@@ -50,4 +55,3 @@ rdgiskdcproxy:i:0
 kdcproxyname:s:
 enablerdsaadauth:i:0
 username:s:{{USERNAME}}
-

@@ -1,18 +1,27 @@
 [CmdletBinding()]
 param(
     [string]$RdpPath = (Join-Path ([Environment]::GetFolderPath("Desktop")) "Codex.rdp"),
-    [string]$TemplatePath = (Join-Path (Split-Path -Parent $PSScriptRoot) "templates\Codex.rdp.template"),
+    [string]$TemplatePath = "",
     [string]$FullAddress = "127.0.0.20",
     [Parameter(Mandatory)][string]$UserName,
     [string]$Password = "",
-    [int]$DesktopWidth = 2560,
-    [int]$DesktopHeight = 1600,
+    [int]$DesktopWidth = 3840,
+    [int]$DesktopHeight = 2060,
+    [ValidateRange(100, 500)][int]$DesktopScaleFactor = 150,
+    [ValidateSet(100, 140, 180)][int]$DeviceScaleFactor = 100,
+    [switch]$DisableSmartSizing,
+    [switch]$EnableDynamicResolution,
+    [string]$WinPosStr = "",
     [switch]$SaveCredential,
     [switch]$Sign,
     [string]$CertificateSubject = "CN=Codex RDP Publisher"
 )
 
 . "$PSScriptRoot\Sidecar.Common.ps1"
+
+if (-not $TemplatePath) {
+    $TemplatePath = Join-Path (Split-Path -Parent $PSScriptRoot) "templates\Codex.rdp.template"
+}
 
 if (-not (Test-Path -LiteralPath $TemplatePath)) {
     throw "Template not found: $TemplatePath"
@@ -23,6 +32,14 @@ $rdp = $rdp.Replace("{{FULL_ADDRESS}}", $FullAddress)
 $rdp = $rdp.Replace("{{USERNAME}}", $UserName)
 $rdp = $rdp.Replace("{{DESKTOP_WIDTH}}", [string]$DesktopWidth)
 $rdp = $rdp.Replace("{{DESKTOP_HEIGHT}}", [string]$DesktopHeight)
+$rdp = $rdp.Replace("{{DESKTOP_SCALE_FACTOR}}", [string]$DesktopScaleFactor)
+$rdp = $rdp.Replace("{{DEVICE_SCALE_FACTOR}}", [string]$DeviceScaleFactor)
+$rdp = $rdp.Replace("{{SMART_SIZING}}", $(if ($DisableSmartSizing) { "0" } else { "1" }))
+$rdp = $rdp.Replace("{{DYNAMIC_RESOLUTION}}", $(if ($EnableDynamicResolution) { "1" } else { "0" }))
+if (-not $WinPosStr) {
+    $WinPosStr = "0,3,0,0,$DesktopWidth,$DesktopHeight"
+}
+$rdp = $rdp.Replace("{{WIN_POS_STR}}", $WinPosStr)
 New-SidecarDirectory -Path (Split-Path -Parent $RdpPath)
 Set-Content -LiteralPath $RdpPath -Value $rdp -Encoding Unicode -NoNewline
 
@@ -68,8 +85,13 @@ if ($Sign) {
     rdpPath = $RdpPath
     fullAddress = $FullAddress
     userName = $UserName
+    desktopWidth = $DesktopWidth
+    desktopHeight = $DesktopHeight
+    desktopScaleFactor = $DesktopScaleFactor
+    deviceScaleFactor = $DeviceScaleFactor
+    smartSizing = -not [bool]$DisableSmartSizing
+    dynamicResolution = [bool]$EnableDynamicResolution
     credentialSaved = [bool]$SaveCredential
     signed = [bool]$Sign
     certificateThumbprint = $thumbprint
 } | ConvertTo-SidecarJson
-
