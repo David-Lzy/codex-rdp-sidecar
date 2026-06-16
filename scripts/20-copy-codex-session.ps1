@@ -6,6 +6,7 @@ param(
     [switch]$IncludeAuth,
     [switch]$IncludeState,
     [switch]$IncludePets,
+    [switch]$PreserveCodexAccessPolicy,
     [switch]$MoveSession
 )
 
@@ -18,6 +19,54 @@ if (-not (Test-Path -LiteralPath $sourceCodex)) {
     throw "Source .codex directory not found: $sourceCodex"
 }
 New-SidecarDirectory -Path $targetCodex
+
+function Set-CodexTomlString {
+    param(
+        [Parameter(Mandatory)][string[]]$Lines,
+        [Parameter(Mandatory)][string]$Key,
+        [Parameter(Mandatory)][string]$Value
+    )
+
+    $firstSection = $Lines.Count
+    for ($i = 0; $i -lt $Lines.Count; $i++) {
+        if ($Lines[$i] -match '^\s*\[') {
+            $firstSection = $i
+            break
+        }
+    }
+
+    $pattern = '^\s*' + [regex]::Escape($Key) + '\s*='
+    for ($i = 0; $i -lt $firstSection; $i++) {
+        if ($Lines[$i] -match $pattern) {
+            $Lines[$i] = "$Key = `"$Value`""
+            return ,$Lines
+        }
+    }
+
+    $before = @()
+    $after = @()
+    if ($firstSection -gt 0) {
+        $before = $Lines[0..($firstSection - 1)]
+    }
+    if ($firstSection -lt $Lines.Count) {
+        $after = $Lines[$firstSection..($Lines.Count - 1)]
+    }
+    return ,(@($before + "$Key = `"$Value`"" + $after))
+}
+
+function Set-CodexManagedAccessPolicy {
+    param([Parameter(Mandatory)][string]$ConfigPath)
+
+    if (-not (Test-Path -LiteralPath $ConfigPath)) {
+        return $false
+    }
+
+    $lines = Get-Content -LiteralPath $ConfigPath -Encoding UTF8
+    $lines = Set-CodexTomlString -Lines $lines -Key "sandbox_mode" -Value "workspace-write"
+    $lines = Set-CodexTomlString -Lines $lines -Key "approval_policy" -Value "on-request"
+    Set-Content -LiteralPath $ConfigPath -Value $lines -Encoding UTF8
+    return $true
+}
 
 $copied = New-Object System.Collections.Generic.List[string]
 $baseFiles = @("config.toml", "AGENTS.md", "session_index.jsonl", "models_cache.json")
@@ -64,6 +113,12 @@ if ($SessionId) {
     }
 }
 
+$configPath = Join-Path $targetCodex "config.toml"
+$normalizedAccessPolicy = $false
+if (-not $PreserveCodexAccessPolicy) {
+    $normalizedAccessPolicy = Set-CodexManagedAccessPolicy -ConfigPath $configPath
+}
+
 [ordered]@{
     sourceCodex = $sourceCodex
     targetCodex = $targetCodex
@@ -71,6 +126,8 @@ if ($SessionId) {
     includeAuth = [bool]$IncludeAuth
     includeState = [bool]$IncludeState
     includePets = [bool]$IncludePets
+    preserveCodexAccessPolicy = [bool]$PreserveCodexAccessPolicy
+    normalizedAccessPolicy = [bool]$normalizedAccessPolicy
     moveSession = [bool]$MoveSession
     copied = $copied
 } | ConvertTo-SidecarJson

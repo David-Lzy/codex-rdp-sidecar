@@ -8,6 +8,7 @@ This repository is intended for a personal lab or home machine where the operato
 - Making that account an administrator increases blast radius.
 - Saving RDP credentials with `cmdkey` stores reusable credentials in Windows Credential Manager.
 - Copying `.codex/auth.json` or Codex state may copy API/session credentials.
+- Copying a source `config.toml` with `sandbox_mode = "danger-full-access"` gives the sidecar Codex account full local access and prevents the Windows Agent sandbox from enforcing a managed permission profile.
 - Copying `.codex\pets` may transfer custom images or copyrighted/private assets.
 - Copying game profile folders or `HKCU` registry keys may transfer account tokens and private game state.
 - Disabling the new `.rdp` redirection warning reduces a safety prompt that helps detect malicious `.rdp` files.
@@ -29,6 +30,7 @@ You are responsible for:
 - Use a non-admin sidecar account unless your automation genuinely needs elevation.
 - Copy only one required Codex session first.
 - Do not copy `auth.json` unless you understand the credential implications.
+- Keep the sidecar Codex account on `workspace-write` and `on-request` unless you intentionally need full access.
 - Keep `.rdp` files signed instead of globally allowing unsigned files where possible.
 - Prefer LAN-only or VPN-only access.
 

@@ -141,13 +141,32 @@ This favors a maximized window with no scroll bars. `smart sizing` scales the re
 - `-IncludeAuth` copies `auth.json` and browser/native-host related files.
 - `-IncludeState` copies local Codex state SQLite files.
 - `-IncludePets` copies `.codex\pets` custom pet assets.
+- By default, copied `config.toml` is normalized to `sandbox_mode = "workspace-write"` and `approval_policy = "on-request"` for the sidecar account. This keeps the Windows Agent sandbox on a managed permission profile.
+- `-PreserveCodexAccessPolicy` keeps the source `sandbox_mode` and `approval_policy` values. Use it only if you intentionally want to copy settings such as `danger-full-access`.
 - `-MoveSession` removes the source session file after copying and uses PowerShell confirmation semantics.
 
 Do not commit copied `.codex` data.
 
 ## Troubleshooting Codex Agent Sandbox Updates
 
-If the sidecar account shows `Unable to update Agent sandbox`, check whether the Codex MSIX/AppX package is open in another Windows session.
+If the sidecar account shows `Unable to update Agent sandbox`, there are two common causes.
+
+First, make sure the sidecar Codex config is not forcing full access. Windows Agent sandbox setup can only enforce managed permission profiles. If the Codex desktop log contains:
+
+```text
+only managed permission profiles can be enforced by the Windows sandbox
+```
+
+then the target user's `.codex\config.toml` probably contains `sandbox_mode = "danger-full-access"` or `approval_policy = "never"`. Re-run `20-copy-codex-session.ps1` without `-PreserveCodexAccessPolicy`, or edit the sidecar account config to:
+
+```toml
+sandbox_mode = "workspace-write"
+approval_policy = "on-request"
+```
+
+Then fully exit and reopen Codex in the sidecar RDP session.
+
+Second, check whether the Codex MSIX/AppX package is open in another Windows session.
 
 On a machine where both the main console account and the RDP sidecar account are running Codex, Windows may log:
 
@@ -169,6 +188,12 @@ Get-WinEvent -FilterHashtable @{
 } | Where-Object {
   $_.Message -match "Codex-SearchForUpdatesWithPausedAddAsync|80073d02"
 }
+```
+
+Codex desktop logs for MSIX installs are usually under:
+
+```text
+C:\Users\<user>\AppData\Local\Packages\OpenAI.Codex_2p2nqsd0c76g0\LocalCache\Local\Codex\Logs
 ```
 
 ## Game Profile Copying

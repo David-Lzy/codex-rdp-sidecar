@@ -135,13 +135,32 @@ Set-Location H:\Codex\codex-rdp-sidecar
 - `-IncludeAuth`：复制 `auth.json` 等认证相关文件。
 - `-IncludeState`：复制本地 Codex SQLite 状态。
 - `-IncludePets`：复制 `.codex\pets` 本地宠物资源。
+- 默认会把复制到目标账户的 `config.toml` 规范化为 `sandbox_mode = "workspace-write"` 和 `approval_policy = "on-request"`，让 Windows Agent 沙盒使用可管理权限档。
+- `-PreserveCodexAccessPolicy`：保留源账户的 `sandbox_mode` 和 `approval_policy`。只有你明确想复制 `danger-full-access` 之类设置时才使用。
 - `-MoveSession`：复制后删除源 session 文件，会触发 PowerShell 确认语义。
 
 不要把复制出来的 `.codex` 数据提交到 git。
 
 ## Codex Agent 沙盒更新失败
 
-如果 sidecar 账户里出现“无法更新 Agent 沙盒”，先检查是不是同一个 Codex MSIX/AppX 包同时被主账户和 RDP 账户占用。
+如果 sidecar 账户里出现“无法更新 Agent 沙盒”，常见原因有两个。
+
+第一，确认 sidecar Codex 配置没有强制完全访问。Windows Agent 沙盒只能强制执行可管理权限档。如果 Codex desktop 日志里出现：
+
+```text
+only managed permission profiles can be enforced by the Windows sandbox
+```
+
+说明目标用户的 `.codex\config.toml` 很可能包含 `sandbox_mode = "danger-full-access"` 或 `approval_policy = "never"`。重新运行 `20-copy-codex-session.ps1`，不要带 `-PreserveCodexAccessPolicy`；或者手动把 sidecar 账户配置改成：
+
+```toml
+sandbox_mode = "workspace-write"
+approval_policy = "on-request"
+```
+
+然后完全退出 RDP 里的 Codex，再重新打开。
+
+第二，检查是不是同一个 Codex MSIX/AppX 包同时被主账户和 RDP 账户占用。
 
 当主账户和 RDP sidecar 账户同时运行 Codex 时，Windows 事件日志里可能出现：
 
@@ -163,6 +182,12 @@ Get-WinEvent -FilterHashtable @{
 } | Where-Object {
   $_.Message -match "Codex-SearchForUpdatesWithPausedAddAsync|80073d02"
 }
+```
+
+MSIX 安装的 Codex desktop 日志通常在：
+
+```text
+C:\Users\<user>\AppData\Local\Packages\OpenAI.Codex_2p2nqsd0c76g0\LocalCache\Local\Codex\Logs
 ```
 
 ## 关于游戏配置
