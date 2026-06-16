@@ -1,0 +1,23 @@
+# Local secrets and copied state
+.codex/
+*.rdp
+*.rdp.bak*
+*.cer
+*.pfx
+*.key
+*.log
+*.jsonl
+
+# PowerShell/runtime output
+*.tmp
+*.bak
+out/
+artifacts/
+
+# OS/editor noise
+Thumbs.db
+Desktop.ini
+.DS_Store
+.vscode/
+.idea/
+

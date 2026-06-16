@@ -1,0 +1,19 @@
+{
+  "name": "Foundation Galactic Frontier",
+  "notes": [
+    "Example manifest only. Review every path and registry key before running.",
+    "The script copies user-level game state. Do not commit copied game state to git."
+  ],
+  "directories": [
+    {
+      "source": "{SourceProfile}\\AppData\\Roaming\\com.funplus",
+      "destination": "{TargetProfile}\\AppData\\Roaming\\com.funplus"
+    }
+  ],
+  "files": [],
+  "registryKeys": [
+    "HKCU\\Software\\Funplus",
+    "HKCU\\Software\\funplus.sdk"
+  ]
+}
+
