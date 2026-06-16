@@ -20,6 +20,8 @@
 
 <https://github.com/sergiye/rdpWrapper/issues/27>
 
+如果要把这套流程复制到另一台 Windows 电脑，见 [docs/replicate-on-another-windows-pc.zh-CN.md](docs/replicate-on-another-windows-pc.zh-CN.md)。
+
 ## 能做什么
 
 - 创建本地 sidecar 用户。

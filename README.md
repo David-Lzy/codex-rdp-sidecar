@@ -26,6 +26,8 @@ The June 2026 RDP Wrapper breakage discussed here is tracked upstream at:
 
 <https://github.com/sergiye/rdpWrapper/issues/27>
 
+For a copy-and-run handoff to another Windows PC, use [docs/replicate-on-another-windows-pc.md](docs/replicate-on-another-windows-pc.md).
+
 ## What This Automates
 
 - Creates a local sidecar user, optionally with local administrator rights.
